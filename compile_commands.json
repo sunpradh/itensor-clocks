@@ -1,0 +1,26 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-m64",
+      "-std=c++17",
+      "-fPIC",
+      "-c",
+      "-I.",
+      "-I/opt/itensor",
+      "-DITENSOR_USE_OMP",
+      "-fopenmp",
+      "-O2",
+      "-DNDEBUG",
+      "-Wall",
+      "-Wno-unknown-pragmas",
+      "-Wno-unused-variable",
+      "-o",
+      "app.o",
+      "app.cc"
+    ],
+    "directory": "~/doc/uni/code/itensor-clock",
+    "file": "~/doc/uni/code/itensor-clock/app.cc",
+    "output": "~/doc/uni/code/itensor-clock/app.o"
+  }
+]

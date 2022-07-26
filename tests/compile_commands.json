@@ -1,0 +1,26 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-m64",
+      "-std=c++17",
+      "-fPIC",
+      "-c",
+      "-I.",
+      "-I/opt/itensor",
+      "-DITENSOR_USE_OMP",
+      "-fopenmp",
+      "-O2",
+      "-DNDEBUG",
+      "-Wall",
+      "-Wno-unknown-pragmas",
+      "-Wno-unused-variable",
+      "-o",
+      "app.o",
+      "app.cc"
+    ],
+    "directory": "/home/sunny/doc/uni/code/itensor-lgt",
+    "file": "/home/sunny/doc/uni/code/itensor-lgt/app.cc",
+    "output": "/home/sunny/doc/uni/code/itensor-lgt/app.o"
+  }
+]
