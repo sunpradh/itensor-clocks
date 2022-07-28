@@ -7,7 +7,11 @@
       "-fPIC",
       "-c",
       "-I.",
-      "-I/opt/itensor",
+      "-I/home/sunny/.local/lib/itensor",
+      "-I/usr/include",
+      "-fpermissive",
+      "-DHAVE_LAPACK_CONFIG_H",
+      "-DLAPACK_COMPLEX_STRUCTURE",
       "-DITENSOR_USE_OMP",
       "-fopenmp",
       "-O2",
@@ -19,8 +23,8 @@
       "app.o",
       "app.cc"
     ],
-    "directory": "~/doc/uni/code/itensor-clock",
-    "file": "~/doc/uni/code/itensor-clock/app.cc",
-    "output": "~/doc/uni/code/itensor-clock/app.o"
+    "directory": "/home/sunny/docs/uni/code/itensor-clocks",
+    "file": "/home/sunny/docs/uni/code/itensor-clocks/app.cc",
+    "output": "/home/sunny/docs/uni/code/itensor-clocks/app.o"
   }
 ]

@@ -10,6 +10,9 @@ using Real    = itensor::Real;
 // Include the custom class ClockSite
 #include "clock.h"
 
+// Include randomMPS with QN conservation
+#include "random.h"
+
 // Hamiltonian
 #include "hamiltonian.h"
 
