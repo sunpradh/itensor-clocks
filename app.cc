@@ -16,30 +16,30 @@ int main(int argc, char ** argv)
 {
     // Simulation setups
     constexpr uint N = 3; // clock order
-    constexpr uint L = 3; // chain length
+    constexpr uint L = 10; // chain length
     auto sites = Clock<N>(L, {"ConserveQNs=", true});  // clock model
 
     // Hamiltonian
     float h = 2.0;
-    Complex phase = exp(Complex(0, 0.4)); // complex phase on the long. coupling
+    // Complex phase = exp(Complex(0, 0.4)); // complex phase on the long. coupling
+
+    auto H = hamiltonian(sites, {
+        "Kinetic",  -1,
+        "Transv",   -1.5,
+        "PBC",      false
+    });
+    // PrintData(H);
 
     // auto H = hamiltonianC(sites, {
-    //     "Kinetic",  -0,
-    //     "Transv",   -1,
+    //     "KineticRe", -(1.0-h) * real(phase),
+    //     "KineticIm", -(1.0-h) * imag(phase),
+    //     "TransvRe",   -h * real(phase),
+    //     "TransvIm", -h * imag(phase),
+    //     "LongitRe", 0.0,     // -h * real(1 + phase),
+    //     "LongitIm", 0.0,     // -h * imag(1 + phase),
     //     "PBC",      false
     // });
     // PrintData(H);
-
-    auto H = hamiltonianC(sites, {
-        "KineticRe", -(1.0-h) * real(phase),
-        "KineticIm", -(1.0-h) * imag(phase),
-        "TransvRe",   -h * real(phase),
-        "TransvIm", -h * imag(phase),
-        "LongitRe", 0.0,     // -h * real(1 + phase),
-        "LongitIm", 0.0,     // -h * imag(1 + phase),
-        "PBC",      false
-    });
-    PrintData(H);
 
     //
     // Example of DMRG
@@ -52,12 +52,20 @@ int main(int argc, char ** argv)
     sweeps.niter() = 4;
 
     // Init state
-    auto init_wf = randomMPS_QN(sites, 0);
+    auto psi0 = randomMPS_QN(sites, 0);
 
     // Compute the ground states
     cout << "  > DMRG for ground state\n";
-    auto [E0, psi0] = dmrg(H, init_wf, sweeps, {"Silent", true});
+    auto [E0, psi] = dmrg(H, psi0, sweeps, {"Silent", true});
     cout << " E0 = " << E0 << "\n";
+
+    // Compure correlator <X_1^dag X_r>
+    for (auto i : range1(2, L-1)) {
+        auto corr = compute_correlatorC(sites, psi, "Zdag", "Z", {1, i});
+        cout << " corr = " << corr << "\n";
+    }
+
+
 
     return 0;
 }

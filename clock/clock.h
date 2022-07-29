@@ -18,7 +18,6 @@ using itensor::QN;
 
 // Z_N clock models (N template parameter)
 namespace clocks {
-// Operators: "X", "Xdag", "Z", "Zdag"
 template<unsigned N>
 class ClockSite {
 private:
@@ -32,18 +31,24 @@ public:
     Index index() const { return s; }
     IndexVal state(string const & state);
 
+    // Operators: "X", "Xdag", "Z", "Zdag"
     ITensor op(
         string const & opname,
         Args const & args = Args::global()
     ) const;
-    static bool is_valid_op(string const & op);
 };
 
-// Specialization for N=2, where X and Z are Hermitian
-// template<> class ClockSite<2>;
+// Contains also a specialization for N=2, where X and Z are Hermitian
 
+// SiteSet subclass with ClockSite type
 template<unsigned int N>
 using Clock = itensor::BasicSiteSet<ClockSite<N>>;
+
+// Check if string represent a valid op
+inline bool is_valid_op(string const & op){
+    return op == "X" || op == "Xdag" || op == "Z" || op == "Zdag";
+}
+
 }
 /************************************************************/
 
@@ -146,16 +151,6 @@ clocks::ClockSite<N>::op(
     return Op;
 }
 
-template<unsigned N>
-bool
-clocks::ClockSite<N>::is_valid_op(
-    string const & op
-)
-{
-    return op == "X" || op == "Xdag" || op == "Z" || op == "Zdag";
-}
-
-
 template<>
 class clocks::ClockSite<2>
 {
@@ -200,10 +195,6 @@ class clocks::ClockSite<2>
         return Op;
     }
 
-    bool is_valid_op(string const & op)
-    {
-        return op == "X" || op == "Xdag" || op == "Z" || op == "Zdag";
-    }
 };
 
 
