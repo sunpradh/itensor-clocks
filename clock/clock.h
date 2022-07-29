@@ -139,7 +139,7 @@ clocks::ClockSite<N>::op(
             Op.set(s(i), sP(i), pow(omega, i-1));
     } else if(opname == "Xdag") {
         for (auto i : range1(N))
-            Op.set(s(i), sP(i), pow(omega, -i+1));
+            Op.set(s(i), sP(i), pow(omega, N-i+1));
     } else {
         throw itensor::ITError("Operator \"" + opname + "\" name not recognized");
     }
@@ -204,8 +204,6 @@ class clocks::ClockSite<2>
     {
         return op == "X" || op == "Xdag" || op == "Z" || op == "Zdag";
     }
-
-
 };
 
 

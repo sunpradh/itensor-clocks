@@ -4,7 +4,7 @@
 #include "itensor/all.h"
 #include "clock.h"
 
-using Real = itensor::Real;
+using Real = itensor::Real; // i.e. float
 /************************************************************/
 namespace clocks {
 
@@ -52,9 +52,18 @@ hamiltonianC(
 /************************************************************/
 
 
+//
+// Real Hamiltonian
+//
 template<unsigned int N>
 itensor::MPO
-clocks::hamiltonian(const clocks::Clock<N> & sites, Real kin, Real transv, Real longit, bool pbc)
+clocks::hamiltonian(
+    const clocks::Clock<N> & sites,
+    Real kin,
+    Real transv,
+    Real longit,
+    bool pbc
+)
 {
     int L = length(sites);
     auto H_ampo = itensor::AutoMPO(sites);
@@ -63,13 +72,13 @@ clocks::hamiltonian(const clocks::Clock<N> & sites, Real kin, Real transv, Real 
     for (int i=1; i < L; i++)
     {
         H_ampo += kin, "Zdag", i+1, "Z",    i;
-        H_ampo += kin, "Z",    i+1, "Zdag", i;
+        H_ampo += kin, "Zdag", i,   "Z", i+1;
     }
     // naive approach to PBC for the kinetic term
     if (pbc)
     {
         H_ampo += kin, "Zdag", L, "Z", 1;
-        H_ampo += kin, "Z", L, "Zdag", 1;
+        H_ampo += kin, "Zdag", 1, "Z", L;
     }
 
     // Transversal field
@@ -91,9 +100,13 @@ clocks::hamiltonian(const clocks::Clock<N> & sites, Real kin, Real transv, Real 
     return toMPO(H_ampo);
 }
 
+
 template<unsigned int N>
 itensor::MPO
-clocks::hamiltonian(const clocks::Clock<N> & sites, const itensor::Args & args)
+clocks::hamiltonian(
+    const clocks::Clock<N> & sites,
+    const itensor::Args    & args
+)
 {
     auto pbc    = args.getBool("PBC",     false);
     auto kin    = args.getReal("Kinetic", -1.0);
@@ -103,24 +116,34 @@ clocks::hamiltonian(const clocks::Clock<N> & sites, const itensor::Args & args)
     return hamiltonian(sites, kin, transv, longit, pbc);
 }
 
+//
+// Chiral Hamiltonian (only for N>=3),
+// i.e. Hamiltonian with complex coeffiecents
+//
 template<unsigned int N>
 itensor::MPO
-clocks::hamiltonianC(const clocks::Clock<N> & sites, Complex kin, Complex transv, Complex longit, bool pbc)
+clocks::hamiltonianC(
+    const clocks::Clock<N> & sites,
+    Complex kin,
+    Complex transv,
+    Complex longit,
+    bool pbc
+)
 {
     int L = itensor::length(sites);
     auto H_ampo = itensor::AutoMPO(sites);
 
     // Kinetic term
     for (int i=1; i < L; i++)
-    {
-        H_ampo += kin,       "Zdag", i+1, "Z",    i;
-        H_ampo += conj(kin), "Z",    i+1, "Zdag", i;
-    }
+        {
+            H_ampo += kin,       "Zdag", i+1, "Z", i;
+            H_ampo += conj(kin), "Zdag", i,   "Z", i+1;
+        }
     // naive approach to PBC for the kinetic term
     if (pbc)
     {
-        H_ampo += kin,       "Zdag", L, "Z",    1;
-        H_ampo += conj(kin), "Z",    L, "Zdag", 1;
+        H_ampo += kin,       "Zdag", L, "Z", 1;
+        H_ampo += conj(kin), "Zdag", 1, "Z", L;
     }
 
     // Transversal field
@@ -142,10 +165,13 @@ clocks::hamiltonianC(const clocks::Clock<N> & sites, Complex kin, Complex transv
     return toMPO(H_ampo);
 }
 
-// Chiral Hamiltonian (only for N>=3)
+
 template<unsigned int N>
 itensor::MPO
-clocks::hamiltonianC(const clocks::Clock<N> & sites, const itensor::Args& args)
+clocks::hamiltonianC(
+    const clocks::Clock<N> & sites,
+    const itensor::Args    & args
+)
 {
     auto pbc      = args.getBool("PBC",       false);
     auto kinRe    = args.getReal("KineticRe", args.getReal("Kinetic", -1.0));
