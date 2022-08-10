@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+
 #include "itensor/mps/mps.h"
 #include "itensor/indexset.h"
 
@@ -20,6 +21,9 @@ constexpr int mod1(int i, int n) { return ((i - 1) % n) + 1; }
 
 // dumping contents
 #include "dump.h"
+
+// Benchmarks
+#include "benchmark.h"
 
 // Shorthand for priming multiple indices at once
 template<typename T, typename... Args>
@@ -79,4 +83,6 @@ class ProgressBar {
     }
 
 };
+
+
 #endif
