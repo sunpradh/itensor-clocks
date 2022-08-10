@@ -31,6 +31,9 @@ include $(LIBRARY_DIR)/options.mk
 
 TENSOR_HEADERS=$(LIBRARY_DIR)/itensor/core.h
 
+# Shorten error messages
+CCFLAGS := $(CCFLAGS) -Wfatal-errors
+
 #Mappings --------------
 OBJECTS=$(patsubst %.cc,%.o, $(CCFILES))
 GOBJECTS=$(patsubst %,.debug_objs/%, $(OBJECTS))
