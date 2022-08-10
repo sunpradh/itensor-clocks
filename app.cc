@@ -2,6 +2,9 @@
 #include <vector>
 #include <cmath>
 #include <fstream>
+// For benchmarking
+#include <chrono>
+using namespace std::chrono;
 
 #include "itensor/all.h"
 #include "clock/all.h"
@@ -16,8 +19,8 @@ int main(int argc, char ** argv)
 {
     // Simulation setups
     constexpr uint N = 3; // clock order
-    constexpr uint L = 10; // chain length
-    auto sites = Clock<N>(L, {"ConserveQNs=", true});  // clock model
+    constexpr uint L = 50; // chain length
+    auto sites = Clock<N>(L, {"ConserveQNs=", false});  // clock model
 
     // Hamiltonian
     float h = 2.0;
@@ -25,21 +28,9 @@ int main(int argc, char ** argv)
 
     auto H = hamiltonian(sites, {
         "Kinetic",  -1,
-        "Transv",   -1.5,
+        "Transv",   -0.4,
         "PBC",      false
     });
-    // PrintData(H);
-
-    // auto H = hamiltonianC(sites, {
-    //     "KineticRe", -(1.0-h) * real(phase),
-    //     "KineticIm", -(1.0-h) * imag(phase),
-    //     "TransvRe",   -h * real(phase),
-    //     "TransvIm", -h * imag(phase),
-    //     "LongitRe", 0.0,     // -h * real(1 + phase),
-    //     "LongitIm", 0.0,     // -h * imag(1 + phase),
-    //     "PBC",      false
-    // });
-    // PrintData(H);
 
     //
     // Example of DMRG
@@ -47,7 +38,7 @@ int main(int argc, char ** argv)
 
     // Sweeps setups
     auto sweeps = Sweeps(5);
-    sweeps.maxdim() = 5, 10, 20, 50, 100;
+    sweeps.maxdim() = 10, 20, 50, 100, 200;
     sweeps.cutoff() = 1E-12;
     sweeps.niter() = 4;
 
@@ -59,13 +50,10 @@ int main(int argc, char ** argv)
     auto [E0, psi] = dmrg(H, psi0, sweeps, {"Silent", true});
     cout << " E0 = " << E0 << "\n";
 
-    // Compure correlator <X_1^dag X_r>
-    for (auto i : range1(2, L-1)) {
-        auto corr = compute_correlatorC(sites, psi, "Zdag", "Z", {1, i});
-        cout << " corr = " << corr << "\n";
-    }
-
-
+    // Benchmarking
+    auto f = [&](){ compute_orderC(sites, psi, "X"); };
+    auto bench = benchmark<20>(f);
+    bench.print_statistics<milliseconds>();
 
     return 0;
 }

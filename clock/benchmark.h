@@ -7,17 +7,17 @@
 using namespace std::chrono;
 using func_t = std::function<void()>;
 
-template<unsigned N_laps = 1>
+template<unsigned N_iter = 1>
 class benchmark {
     private:
-    std::array<time_point<high_resolution_clock>, N_laps+1> time_points;
+    std::array<time_point<high_resolution_clock>, N_iter+1> time_points;
     func_t func;
 
     public:
     benchmark(const func_t & func_) {
         func = func_;
         time_points.front() = high_resolution_clock::now();
-        for (unsigned i=0; i<N_laps; i++) {
+        for (unsigned i=0; i<N_iter; i++) {
             func();
             time_points.at(i+1) = high_resolution_clock::now();
         }
@@ -39,8 +39,8 @@ class benchmark {
     // std deviation of durations
     template<typename Time_t, typename Rep = long>
     auto average() {
-        std::array<Rep, N_laps> lap_times;
-        for (unsigned i=0; i < N_laps; i++) {
+        std::array<Rep, N_iter> lap_times;
+        for (unsigned i=0; i < N_iter; i++) {
             lap_times.at(i) = duration<Time_t, Rep>(i);
         }
 
@@ -63,7 +63,7 @@ class benchmark {
         auto total = total_duration<Time_t, Rep>();
         auto [avg, dev] = average<Time_t, Rep>();
         std::cout
-            << "Number of iterations: " << N_laps << "\n"
+            << "Number of iterations: " << N_iter << "\n"
             << "Total duration: " << total << "\n"
             << "Average duration: " << avg << " ± " << dev << "\n";
     }
