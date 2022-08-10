@@ -4,6 +4,7 @@
 #include "clock.h"
 #include "utils.h"
 
+using Real = itensor::Real;
 /************************************************************/
 
 namespace clocks {
@@ -12,7 +13,7 @@ template<unsigned int N>
 itensor::ITensor
 compute_disorder_IT(
     const Clock<N> & sites,
-    itensor::MPS        psi,
+    itensor::MPS   &    psi,
     const string   & op_type,
     const Interval & interv
 );
@@ -22,7 +23,7 @@ template<unsigned int N>
 Real
 compute_disorder(
     const Clock<N> & sites,
-    itensor::MPS        psi,
+    itensor::MPS   &    psi,
     const string   & op_type,
     const Interval & interv
 );
@@ -31,7 +32,7 @@ template<unsigned int N>
 Complex
 compute_disorderC(
     const Clock<N> & sites,
-    itensor::MPS        psi,
+    itensor::MPS   &    psi,
     const string   & op_type,
     const Interval & interv
 );
@@ -43,14 +44,19 @@ compute_disorderC(
 // Return a scalar ITensor
 template<unsigned int N>
 itensor::ITensor
-clocks::compute_disorder_IT(const clocks::Clock<N> & sites, itensor::MPS psi, const string & op_type, const Interval & interv)
+clocks::compute_disorder_IT(
+    const clocks::Clock<N> & sites,
+    itensor::MPS & psi,
+    const string & op_type,
+    const Interval & interv
+)
 {
     int L = length(sites);
     auto [start, stop] = interv;
 
     if (start < 0 || stop > L || start >= stop)
         throw std::runtime_error("Incorrect range for disorder operator");
-    if (op_type != "Z" && op_type != "X" && op_type != "Zdag" && op_type != "Xdag")
+    if (!clocks::is_valid_op(op_type))
         throw std::runtime_error("Unrecognized operator for disorder operator");
 
     psi.position(start);
@@ -75,18 +81,25 @@ clocks::compute_disorder_IT(const clocks::Clock<N> & sites, itensor::MPS psi, co
 
 template<unsigned int N>
 Real
-clocks::compute_disorder(const clocks::Clock<N> & sites, itensor::MPS psi, const string & op_type, const Interval & interv)
+clocks::compute_disorder(
+    const clocks::Clock<N> & sites,
+    itensor::MPS & psi,
+    const string & op_type,
+    const Interval & interv
+)
 {
     return elt(compute_disorder_IT(sites, psi, op_type, interv));
 }
 
 template<unsigned int N>
 Complex
-clocks::compute_disorderC(const clocks::Clock<N> & sites, itensor::MPS psi, const string & op_type, const Interval & interv)
+clocks::compute_disorderC(
+    const clocks::Clock<N> & sites,
+    itensor::MPS & psi,
+    const string & op_type,
+    const Interval & interv
+)
 {
-    /* auto a = eltC(compute_disorder_IT(sites, psi, op_type, interv)); */
-    /* print(a); */
-    /* return a; */
     return eltC(compute_disorder_IT(sites, psi, op_type, interv));
 }
 
