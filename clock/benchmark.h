@@ -3,9 +3,21 @@
 #include <functional>
 #include <numeric>
 #include <utility>
+#include <type_traits>
 
 using namespace std::chrono;
 using func_t = std::function<void()>;
+
+
+template<typename Time_t>
+constexpr std::string
+units_suffix() {
+    if (std::is_same<Time_t, nanoseconds>::value) return "ns";
+    if (std::is_same<Time_t, microseconds>::value) return "us";
+    if (std::is_same<Time_t, milliseconds>::value) return "ms";
+    if (std::is_same<Time_t, seconds>::value) return "s";
+}
+
 
 template<unsigned N_iter = 1>
 class benchmark {
@@ -62,9 +74,10 @@ class benchmark {
     void print_statistics() {
         auto total = total_duration<Time_t, Rep>();
         auto [avg, dev] = average<Time_t, Rep>();
+        auto unit = units_suffix<Time_t>();
         std::cout
             << "Number of iterations: " << N_iter << "\n"
-            << "Total duration: " << total << "\n"
-            << "Average duration: " << avg << " ± " << dev << "\n";
+            << "Total duration: " << total << " " << unit << "\n"
+            << "Average duration: (" << avg << " ± " << dev << ") " << unit << "\n";
     }
 };
