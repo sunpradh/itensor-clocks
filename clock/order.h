@@ -1,95 +1,72 @@
 #ifndef __CLOCK_ORDER_H
 #define __CLOCK_ORDER_H
 
+#include <numeric>
+#include <vector>
+#include <type_traits>
+#include <utility>
+
 #include "clock.h"
 #include <functional>
-#include <numeric>
 
+template<typename T> using vector = std::vector<T>;
 using std::string;
 using Real = itensor::Real;
-// using itensor::ITensor;
+using itensor::expect;
 using itensor::MPS;
-using itensor::MPO;
-using itensor::range1;
 
 /************************************************************/
 namespace clocks {
 
-template<unsigned N>
-MPO orderMPO(
+template<unsigned N, typename... Args>
+Real
+compute_order(
     const Clock<N> & sites,
-    const string   & op_type
+    MPS & psi,
+    Args... op_types
 );
 
-template<unsigned N>
-Real compute_order(
+template<unsigned N, typename... Args>
+Complex
+compute_orderC(
     const Clock<N> & sites,
-    const MPS      & psi,
-    const string   & op_type
-);
-
-template<unsigned N>
-Complex compute_orderC(
-    const Clock<N> & sites,
-    const MPS      & psi,
-    const string   & op_type
+    MPS & psi,
+    Args... op_types
 );
 
 }
 /************************************************************/
 
-
-template<unsigned N>
-MPO
-clocks::orderMPO(
-    const clocks::Clock<N> & sites,
-    const string & op_type
-)
-{
-    int L = length(sites);
-    auto order_ampo = itensor::AutoMPO(sites);
-    if (!clocks::is_valid_op(op_type))
-        throw std::runtime_error("Unrecognized operator type for order operator");
-
-    if (op_type == "X" or op_type == "Xdag")
-        for (auto i : range1(L))
-        {
-            order_ampo += 0.5, "X", i;
-            order_ampo += 0.5, "Xdag", i;
-        }
-
-    if (op_type == "Z" or op_type == "Zdag")
-        for (auto i : range1(L))
-        {
-            order_ampo += 0.5, "Z", i;
-            order_ampo += 0.5, "Zdag", i;
-        }
-
-    auto order_mpo = itensor::toMPO(order_ampo);
-    order_mpo /= L;
-    return order_mpo;
-}
-
-template<unsigned N>
+template<unsigned N, typename... Args>
 Real
 clocks::compute_order(
     const clocks::Clock<N> & sites,
-    const MPS & psi,
-    const string & op_type
+    MPS & psi,
+    Args... op_types
 )
 {
-    return inner(psi, orderMPO(sites, op_type), psi);
+    auto ops = vector<string>{op_types...};
+    auto expts = expect(psi, sites, ops);
+    vector<Real> results;
+    for (const auto & expt : expts)
+        results.push_back(std::accumulate(expt.begin(), expt.end(), Real(0)));
+    return std::accumulate(results.begin(), results.end(), Real(0)) / double(itensor::length(sites));
 }
 
-template<unsigned N>
+template<unsigned N, typename... Args>
 Complex
 clocks::compute_orderC(
     const clocks::Clock<N> & sites,
-    const MPS & psi,
-    const string & op_type
+    MPS & psi,
+    Args... op_types
 )
 {
-    return innerC(psi, orderMPO(sites, op_type), psi);
+    auto ops = vector<string>{op_types...};
+    auto expts = expectC(psi, sites, ops);
+    vector<Complex> results;
+    for (const auto & expt : expts)
+        results.push_back(std::accumulate(expt.begin(), expt.end(), Complex(0)));
+    return std::accumulate(results.begin(), results.end(), Complex(0)) / double(itensor::length(sites));
 }
 
 #endif
