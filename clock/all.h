@@ -29,7 +29,7 @@ using Real    = itensor::Real;
 #include "entropy.h"
 
 // Some utility functions
-#include "utils.h"
+#include "../utils/all.h"
 /************************************************************/
 
 #endif

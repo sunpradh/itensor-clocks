@@ -3,9 +3,10 @@
 
 #include <cmath>
 #include "itensor/all.h"
-#include "utils.h"
+#include "../utils/all.h"
 
 using std::string;
+using utils::mod1;
 using itensor::Args;
 using itensor::Complex;
 using itensor::ITensor;
