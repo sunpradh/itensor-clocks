@@ -2,7 +2,7 @@
 #define __CLOCK_DISORDER_H
 
 #include "clock.h"
-#include "utils.h"
+#include "../utils/all.h"
 
 using Real = itensor::Real;
 /************************************************************/
@@ -51,30 +51,30 @@ clocks::compute_disorder_IT(
     const Interval & interv
 )
 {
-    int L = length(sites);
-    auto [start, stop] = interv;
-
-    if (start < 0 || stop > L || start >= stop)
-        throw std::runtime_error("Incorrect range for disorder operator");
     if (!clocks::is_valid_op(op_type))
         throw std::runtime_error("Unrecognized operator for disorder operator");
 
-    psi.position(start);
+    int L = length(sites);
+    auto [begin, end] = interv;
+    if (begin < 0 || end > L || begin >= end)
+        throw std::runtime_error("Incorrect range for disorder operator");
 
-    itensor::ITensor disorder = psi(start);
-    disorder *= op(sites, op_type, start);
-    disorder *= dag(prime_inds(psi(start), "Site", rightLinkIndex(psi, start)));
+    psi.position(begin);
 
-    for(int pos=start+1; pos < stop; pos++)
+    itensor::ITensor disorder = psi(begin);
+    disorder *= op(sites, op_type, begin);
+    disorder *= dag(utils::prime_inds(psi(begin), "Site", rightLinkIndex(psi, begin)));
+
+    for(int pos=begin+1; pos < end; pos++)
     {
         disorder *= psi(pos);
         disorder *= op(sites, op_type, pos);
-        disorder *= dag(prime_inds(psi(pos), "Site", "Link"));
+        disorder *= dag(utils::prime_inds(psi(pos), "Site", "Link"));
     }
 
-    disorder *= psi(stop);
-    disorder *= op(sites, op_type, stop);
-    disorder *= dag(prime_inds(psi(stop), "Site", leftLinkIndex(psi, stop)));
+    disorder *= psi(end);
+    disorder *= op(sites, op_type, end);
+    disorder *= dag(utils::prime_inds(psi(end), "Site", leftLinkIndex(psi, end)));
 
     return disorder;
 }
