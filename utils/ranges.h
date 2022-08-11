@@ -5,6 +5,8 @@
 #include <cmath>
 
 /************************************************************/
+namespace utils {
+
 // Shorthand for ranges and linspaces like in numpy
 template<typename T>
 std::vector<T> range(T end);
@@ -16,11 +18,17 @@ template<typename T>
 std::vector<T> range(T begin, T end, T step);
 
 template<typename T>
-std::vector<T> linspace(T begin, T end, size_t npoints = 100);
+std::vector<T> linspace(T begin, T end, long npoints = 100);
+
+}
 /************************************************************/
 
+//
+// Very naive way to implement a range
+//
 template<typename T>
-std::vector<T> range(T begin, T end, T step)
+std::vector<T>
+utils::range(T begin, T end, T step)
 {
     std::vector<T> vec;
     vec.reserve(size_t(std::abs(end-begin)/step));
@@ -30,7 +38,8 @@ std::vector<T> range(T begin, T end, T step)
 }
 
 template<typename T>
-std::vector<T> range(T begin, T end)
+std::vector<T>
+utils::range(T begin, T end)
 {
     return range(begin, end, T(1));
 }
@@ -42,7 +51,8 @@ std::vector<T> range(T end)
 }
 
 template<typename T>
-std::vector<T> linspace(T begin, T end, size_t npoints)
+std::vector<T>
+utils::linspace(T begin, T end, long npoints)
 {
     std::vector<T> vec;
     vec.reserve(npoints);

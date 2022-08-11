@@ -1,3 +1,6 @@
+#ifndef __CLOCK_UTILS_BENCHMARK
+#define __CLOCK_UTILS_BENCHMARK
+
 #include <iostream>
 #include <chrono>
 #include <functional>
@@ -8,24 +11,35 @@
 using namespace std::chrono;
 using func_t = std::function<void()>;
 
+/************************************************************/
+namespace utils {
+    // benchmark class
+    // it is initialized with a void function func_t, the object to benchmark
+    template<unsigned N_iter = 1> class benchmark;
+
+    // returns the unit of measure string for Time_t
+    template<typename Time_t> std::string units_suffix();
+}
+/************************************************************/
 
 template<typename Time_t>
-constexpr std::string
-units_suffix() {
-    if (std::is_same<Time_t, nanoseconds>::value) return "ns";
-    if (std::is_same<Time_t, microseconds>::value) return "us";
+std::string
+utils::units_suffix() {
+    if (std::is_same<Time_t, nanoseconds>::value)  return "ns";
+    if (std::is_same<Time_t, microseconds>::value) return "μs";
     if (std::is_same<Time_t, milliseconds>::value) return "ms";
-    if (std::is_same<Time_t, seconds>::value) return "s";
+    if (std::is_same<Time_t, seconds>::value)      return "s";
+    return "";
 }
 
 
-template<unsigned N_iter = 1>
-class benchmark {
-    private:
+template<unsigned N_iter>
+class utils::benchmark {
+private:
     std::array<time_point<high_resolution_clock>, N_iter+1> time_points;
     func_t func;
 
-    public:
+public:
     benchmark(const func_t & func_) {
         func = func_;
         time_points.front() = high_resolution_clock::now();
@@ -58,14 +72,14 @@ class benchmark {
 
         // Compute average
         Rep avg = std::accumulate(
-                        lap_times.begin(), lap_times.end(), Rep(0)
-                ) / lap_times.size();
+                lap_times.begin(), lap_times.end(), Rep(0)
+            ) / lap_times.size();
 
         // Compute std deviation
         Rep dev = std::accumulate(
-                        lap_times.begin(), lap_times.end(), Rep(0),
-                        [&avg](Rep sum, Rep elem){ return sum + (avg - elem)*(avg - elem); }
-                    );
+                lap_times.begin(), lap_times.end(), Rep(0),
+                [&avg](Rep sum, Rep elem){ return sum + (avg - elem)*(avg - elem); }
+            );
         dev = sqrt(dev);
         return std::make_pair(avg, dev);
     };
@@ -76,8 +90,10 @@ class benchmark {
         auto [avg, dev] = average<Time_t, Rep>();
         auto unit = units_suffix<Time_t>();
         std::cout
-            << "Number of iterations: " << N_iter << "\n"
-            << "Total duration: " << total << " " << unit << "\n"
-            << "Average duration: (" << avg << " ± " << dev << ") " << unit << "\n";
+            << "\tNumber of iterations: " << N_iter << "\n"
+            << "\tTotal duration: " << total << " " << unit << "\n"
+            << "\tAverage duration: (" << avg << " ± " << dev << ") " << unit << "\n";
     }
 };
+
+#endif
