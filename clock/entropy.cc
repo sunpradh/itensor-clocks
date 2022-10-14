@@ -14,7 +14,8 @@ Real entropy_vN(itensor::MPS & psi, int pos, const itensor::Args & args)
     Real SvN = 0;
     for(auto n : itensor::range1(dim(common_ind)))
     {
-        auto p = sqrt(elt(S, n, n));
+        auto s = elt(S, n, n);
+        auto p = s * s;
         if (p > cutoff) SvN += -p*log(p);
     }
 
