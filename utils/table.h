@@ -1,89 +1,95 @@
-#ifndef __UTILS_DATAFRAME_H
-#define __UTILS_DATAFRAME_H
+#ifndef __UTILS_TABLE_H
+#define __UTILS_TABLE_H
 
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <utility>
-#include <concepts>
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <functional>
+#include <ranges>
 
 using std::string;
 using std::string_view;
 using std::cout;
 using std::setw;
+namespace views = std::ranges::views;
+using views::iota;
 
 template<typename T>
-concept Container = requires(T a) {
+concept ColumnType = requires(T a, int i) {
     { std::begin(a) };
     { std::end(a) };
     { std::size(a) };
+    { a[i] };
 };
 
 namespace utils {
 
 
-template<Container T>
+template<ColumnType T>
 class Table {
-    std::vector<string> column_names{};
+    std::vector<string> column_ids{};
     std::unordered_map<string, T> columns{};
 
-    uint precision = 8;
-    uint col_width = 12;
-    uint n_rows = 0;
+    unsigned int precision = 8;
+    unsigned int col_width = 12;
 
 public:
     // Constructors
-    Table(string_view col_name, const T & column);
+    Table(string_view id, const T & column);
 
     template<typename ... Args>
-    Table(string_view first_col_name, const T & first_column, const Args & ... other_cols);
+    Table(string_view first_id, const T & first_column, const Args & ... other_cols);
 
     // Add columns
-    Table add_columns(string_view col_name, const T & column);
+    Table add_columns(string_view id, const T & column);
 
     template<typename ... Args>
-    Table add_columns(string_view first_col_name, const T & first_column, const Args & ... other_cols);
+    Table add_columns(string_view first_id, const T & first_column, const Args & ... other_cols);
 
-    Table set_width(uint n) {
+    Table set_width(unsigned int n) {
         col_width = n;
         return *this;
     }
 
-    Table set_precision(uint n) {
+    Table set_precision(unsigned int n) {
         precision = n;
         return *this;
     }
 
+    auto ncols() { return columns.size(); }
+    auto nrows() { return columns.begin()->second.size(); }
+    auto size()  { return ncols() * nrows(); }
+
     void print() ;
     void to_csv(string_view filename) ;
 
-    T operator[](string_view col_name) {
-        return columns[col_name];
+    T operator[](string_view id) {
+        return columns[id];
     };
 };
 
 
-template<Container T>
+template<ColumnType T>
 Table<T>
-Table<T>::add_columns(string_view col_name, const T & column){
-    if (column.size() != n_rows)
-        throw std::invalid_argument("Wrong size container");
-    column_names.emplace_back(string(col_name));
-    columns.insert(std::make_pair(col_name, column));
+Table<T>::add_columns(string_view id, const T & column){
+    if (!columns.empty())
+        if (column.size() != nrows())
+            throw std::invalid_argument("Wrong size container");
+    column_ids.emplace_back(string(id));
+    columns.insert(std::make_pair(id, column));
     return *this;
 };
 
-template<Container T>
+template<ColumnType T>
 template<typename ... Args>
 Table<T>
-Table<T>::add_columns(string_view first_col_name, const T & first_column, const Args & ... other_cols)
+Table<T>::add_columns(string_view first_id, const T & first_column, const Args & ... other_cols)
 {
-    add_columns(first_col_name, first_column);
+    add_columns(first_id, first_column);
     if (sizeof...(other_cols) < 2 || sizeof...(other_cols) % 2 != 0)
         throw std::invalid_argument("Invalid number of arguments");
     add_columns(other_cols...);
@@ -91,47 +97,45 @@ Table<T>::add_columns(string_view first_col_name, const T & first_column, const 
 }
 
 
-template<Container T>
-Table<T>::Table(string_view col_name, const T & column) {
-    n_rows = column.size();
-    add_columns(col_name, column);
+template<ColumnType T>
+Table<T>::Table(string_view id, const T & column) {
+    add_columns(id, column);
 }
 
-template<Container T>
+template<ColumnType T>
 template<typename ... Args>
-Table<T>::Table(string_view first_col_name, const T & first_column, const Args & ... other_cols) {
-    n_rows = first_column.size();
-    add_columns(first_col_name, first_column, other_cols...);
+Table<T>::Table(string_view first_id, const T & first_column, const Args & ... other_cols) {
+    add_columns(first_id, first_column, other_cols...);
 }
 
 
-template<Container T>
+template<ColumnType T>
 void
 Table<T>::print() {
     // Set precision
     cout << std::setprecision(precision);
 
     // Print the headers
-    for (auto col_name : column_names)
-    cout << setw(col_width) << col_name;
+    for (auto id : column_ids)
+    cout << setw(col_width) << id;
     cout << "\n";
 
     // Print hrule
-    for (uint i=0; i < col_width * column_names.size(); i++)
+    for (auto i : iota(0u, col_width * ncols()))
         cout << "-";
     cout << "\n";
 
     // Print the elements
-    for (uint i=0; i < n_rows; i++) {
-        for (auto col_name : column_names)
-        cout << setw(col_width) << columns[col_name][i];
+    for (auto i : iota(0u, nrows())) {
+        for (auto id : column_ids)
+        cout << setw(col_width) << columns[id][i];
         cout << "\n";
     }
     cout << std::endl;
 }
 
 
-template<Container T>
+template<ColumnType T>
 void
 Table<T>::to_csv(string_view filename) {
     std::fstream file{string(filename), file.out};
@@ -139,16 +143,19 @@ Table<T>::to_csv(string_view filename) {
     // Set precision
     file << std::setprecision(precision);
 
+    auto inner_ids = column_ids | views::take(ncols()-1);
+    auto last_id = column_ids.back();
+
     // Print headers
-    for (auto name = column_names.begin(); name != column_names.end()-1; name++)
-        file << *name << ",";
-    file << column_names.back() << "\n";
+    for (auto id : inner_ids)
+        file << id << ",";
+    file << last_id << "\n";
 
     // Print columns
-    for (uint i=0; i < n_rows; i++) {
-        for (auto name = column_names.begin(); name != column_names.end()-1; name++)
-            file << columns[*name][i] << ",";
-        file << columns[column_names.back()][i] << "\n";
+    for (auto i : iota(0u, nrows())) {
+        for (auto id : inner_ids)
+            file << columns[id][i] << ",";
+        file << columns[last_id][i] << "\n";
     }
 }
 
