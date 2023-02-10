@@ -45,7 +45,8 @@ utils::range(T begin, T end)
 }
 
 template<typename T>
-std::vector<T> range(T end)
+std::vector<T>
+utils::range(T end)
 {
     return range(T(0), end, T(1));
 }

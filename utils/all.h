@@ -64,6 +64,8 @@ umap_to_vector(std::unordered_map<T1, T2> in, std::vector<T1> keys)
 // Benchmarks
 #include "benchmark.h"
 
+#include "table.h"
+
 /************************************************************/
 
 

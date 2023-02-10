@@ -1,75 +1,88 @@
-#include <unordered_map>
 #include <vector>
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <numeric>
+#include <iomanip>
+#include <utility>
 
-// For benchmarking
-#include <chrono>
 
 #include "itensor/all.h"
 #include "clock/all.h"
+#include "utils/all.h"
 
 using namespace itensor;
 using namespace clocks;
 using std::cout;
 
+
+template<int N>
+auto dual_clock_hamiltonian(const Clock<N> & sites, float coupling, int sector) {
+    Complex phase = exp(Complex(0, 2.0 * M_PI / float(N)));
+    Complex longit_factor = (1.0 + pow(phase, sector));
+
+    return hamiltonianC(
+        sites,
+        {
+            "Kinetic", - coupling,
+            "Transv", -1.0,
+            "LongitRe", - coupling * longit_factor.real(),
+            "LongitIm", - longit_factor.imag()
+        }
+    );
+}
+
+
 int main(int argc, char ** argv)
 {
     // Simulation setups
-    constexpr uint N = 3; // clock order
+    constexpr uint N = 2; // clock order
     constexpr uint L = 10; // chain length
-    auto sites = Clock<N>(L, {"ConserveQNs=", true});  // clock model
+    constexpr uint n_points = 20; // number of points to compute
+    constexpr uint n_excited = 3; // number of excited states to compute
 
-    // Hamiltonian
-    float h = 2.0;
-    // Complex phase = exp(Complex(0, 0.4)); // complex phase on the long. coupling
+    using Array = std::array<float, n_points>;
+    auto sites = Clock<N>(L, {"ConserveQNs=", false});  // clock model
 
-    auto H = hamiltonian(sites, {
-        "Kinetic",  -1,
-        "Transv",   -1.4,
-        "PBC",      false
-    });
+    // Coupling range
+    auto coupling_range = utils::linspace(0.0f, 2.0f, n_points);
 
-    // Example of DMRG
-    //----------------------------------------
+    auto couplings = Array{};
+    for (auto i : utils::range<int>(n_points)) couplings[i] = coupling_range[i];
+
+    // Storage for the computed values
+    Array ground_states{}, disord_X_vals{}, corr_Z_vals{};
+
     // Sweeps setups
     auto sweeps = Sweeps(5);
     sweeps.maxdim() = 10, 20, 50, 100, 200;
     sweeps.cutoff() = 1E-12;
     sweeps.niter() = 4;
 
-    // Init state
-    auto psi0 = randomMPS_QN(sites, 0);
+    for (auto i : utils::range<int>(n_points)) {
+        // Hamiltonian
+        auto H = dual_clock_hamiltonian<N>(sites, couplings[i], 0);
 
-    // Compute the ground states
-    cout << "  > DMRG for ground state\n";
-    auto [E0, psi] = dmrg(H, psi0, sweeps, {"Silent", true});
-    cout << " E0 = " << E0 << "\n";
-    //----------------------------------------
+        // Random init state
+        auto psi0 = randomMPS(sites);
+        // Compute the ground states
+        auto [E0, psi] = dmrg(H, psi0, sweeps, {"Silent", true});
+        ground_states[i] = E0;
 
-    // Example order parameters
-    auto Xev = 0.5 * compute_orderC(sites, psi, "X", "Xdag");
-    auto Zev = compute_orderC(sites, psi, "Z");
-    cout << "<X>: " << Xev << "\n";
-    cout << "<Z>: " << Zev << "\n";
+        // disorder operator
+        disord_X_vals[i] = compute_disorderC(sites, psi, "X", {1, 5}).real();
+        // correlators
+        corr_Z_vals[i] = compute_correlatorC(sites, psi, "Z", "Zdag", {1, 5}).real();
+    }
 
-    // Example disorder parameters
-    auto Xdisord = compute_disorderC(sites, psi, "X", {1, 5});
-    auto Zdisord = compute_disorderC(sites, psi, "Z", {1, 5});
-    cout << "Xdisord: " << Xdisord << "\n";
-    cout << "Zdisord: " << Zdisord << "\n";
-
-    // Example correlators
-    auto Xcorrel = compute_correlatorC(sites, psi, "X", "Xdag", {1, 5});
-    auto Zcorrel = compute_correlatorC(sites, psi, "Z", "Zdag", {1, 5});
-    cout << "Xcorrel: " << Xcorrel << "\n";
-    cout << "Zcorrel: " << Zcorrel << "\n";
-
-    // Example of benchmarking
-    auto f = [&](){ compute_orderC(sites, psi, "X", "Xdag"); };
-    auto bench = utils::benchmark<20>(f);
-    bench.print_statistics<std::chrono::milliseconds>();
+    utils::Table table(
+            "couplings", couplings,
+            "E0",        ground_states,
+            "disX",      disord_X_vals,
+            "corrZ",     corr_Z_vals
+        );
+    table.set_width(16).print();
+    table.set_precision(16).to_csv("out.csv");
 
     return 0;
 }
