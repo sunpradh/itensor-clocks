@@ -1,13 +1,11 @@
 #ifndef __CLOCK_UTILS_RANGES_H
 #define __CLOCK_UTILS_RANGES_H
 
-#include <vector>
 #include <cmath>
-#include <ranges>
-#include <iostream>
+#include <vector>
+#include <array>
+#include <stdexcept>
 
-namespace views = std::ranges::views;
-using views::iota;
 
 /************************************************************/
 namespace utils {
@@ -84,11 +82,22 @@ public:
     iterator end() { return end_; }
     std::size_t size() { return npoints_; }
 
-    auto to_vector() {
+    std::vector<T> to_vector() {
         std::vector<T> vec;
         for (auto x : *this) vec.push_back(x);
         return vec;
     }
+
+    template<size_t N>
+    std::array<T, N> to_array() {
+        if (N != size())
+            throw std::invalid_argument("Array of the wrong size");
+        std::array<T, N> arr;
+        size_t n = 0;
+        for (auto x : *this) { arr[n] = x; n++; }
+        return arr;
+    }
+
 
 private:
     iterator begin_, end_;

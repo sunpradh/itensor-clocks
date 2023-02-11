@@ -1,10 +1,8 @@
 #include <array>
 #include <cmath>
+#include <iostream>
 #include <fstream>
-#include <numeric>
-#include <iomanip>
 #include <utility>
-#include <ranges>
 
 #include "itensor/all.h"
 #include "clock/all.h"
@@ -13,8 +11,6 @@
 using namespace itensor;
 using namespace clocks;
 using std::cout;
-namespace ranges = std::ranges;
-namespace views = ranges::views;
 
 template<int N>
 auto dual_clock_hamiltonian(const Clock<N> & sites, float coupling, int sector) {
@@ -45,9 +41,7 @@ int main(int argc, char ** argv)
     auto sites = Clock<N>(L, {"ConserveQNs=", false});  // clock model
 
     // Coupling range
-    Array couplings{};
-    auto ls = utils::linspace(0.0f, 2.0f, n_points).to_vector();
-    std::copy(ls.begin(), ls.end(), couplings.begin());
+    Array couplings = utils::linspace(0.0f, 2.0f, n_points).to_array<n_points>();
 
     // Storage for the computed values
     Array ground_states{}, disord_X_vals{}, corr_Z_vals{};
