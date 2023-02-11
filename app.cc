@@ -1,11 +1,10 @@
-#include <vector>
 #include <array>
 #include <cmath>
 #include <fstream>
 #include <numeric>
 #include <iomanip>
 #include <utility>
-
+#include <ranges>
 
 #include "itensor/all.h"
 #include "clock/all.h"
@@ -14,7 +13,8 @@
 using namespace itensor;
 using namespace clocks;
 using std::cout;
-
+namespace ranges = std::ranges;
+namespace views = ranges::views;
 
 template<int N>
 auto dual_clock_hamiltonian(const Clock<N> & sites, float coupling, int sector) {
@@ -36,19 +36,18 @@ auto dual_clock_hamiltonian(const Clock<N> & sites, float coupling, int sector) 
 int main(int argc, char ** argv)
 {
     // Simulation setups
-    constexpr uint N = 2; // clock order
-    constexpr uint L = 10; // chain length
-    constexpr uint n_points = 20; // number of points to compute
-    constexpr uint n_excited = 3; // number of excited states to compute
+    constexpr unsigned int N = 2; // clock order
+    constexpr unsigned int L = 10; // chain length
+    constexpr unsigned int n_points = 20; // number of points to compute
+    constexpr unsigned int n_excited = 3; // number of excited states to compute
 
     using Array = std::array<float, n_points>;
     auto sites = Clock<N>(L, {"ConserveQNs=", false});  // clock model
 
     // Coupling range
-    auto coupling_range = utils::linspace(0.0f, 2.0f, n_points);
-
-    auto couplings = Array{};
-    for (auto i : utils::range<int>(n_points)) couplings[i] = coupling_range[i];
+    Array couplings{};
+    auto ls = utils::linspace(0.0f, 2.0f, n_points).to_vector();
+    std::copy(ls.begin(), ls.end(), couplings.begin());
 
     // Storage for the computed values
     Array ground_states{}, disord_X_vals{}, corr_Z_vals{};
@@ -59,7 +58,7 @@ int main(int argc, char ** argv)
     sweeps.cutoff() = 1E-12;
     sweeps.niter() = 4;
 
-    for (auto i : utils::range<int>(n_points)) {
+    for (auto i : utils::range(n_points)) {
         // Hamiltonian
         auto H = dual_clock_hamiltonian<N>(sites, couplings[i], 0);
 
@@ -81,6 +80,7 @@ int main(int argc, char ** argv)
             "disX",      disord_X_vals,
             "corrZ",     corr_Z_vals
         );
+
     table.set_width(16).print();
     table.set_precision(16).to_csv("out.csv");
 
