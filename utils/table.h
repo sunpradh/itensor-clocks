@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <stdexcept>
+#include <ostream>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -28,7 +29,6 @@ concept ColumnType = requires(T a, int i) {
 
 namespace utils {
 
-
 template<ColumnType T>
 class Table {
     std::vector<string> column_ids{};
@@ -38,7 +38,11 @@ class Table {
     unsigned int col_width = 12;
 
 public:
+    using item_type = typename T::value_type;
+
     // Constructors
+    Table();
+
     Table(string_view id, const T & column);
 
     template<typename ... Args>
@@ -50,6 +54,11 @@ public:
     template<typename ... Args>
     Table add_columns(string_view first_id, const T & first_column, const Args & ... other_cols);
 
+    const std::vector<string> & head() const { return column_ids; }
+
+    auto get_width() const { return col_width; }
+    auto get_precision() const { return precision; }
+
     Table set_width(unsigned int n) {
         col_width = n;
         return *this;
@@ -60,16 +69,25 @@ public:
         return *this;
     }
 
-    auto ncols() { return columns.size(); }
-    auto nrows() { return columns.begin()->second.size(); }
-    auto size()  { return ncols() * nrows(); }
+    auto ncols() const { return columns.size(); }
+    auto nrows() const { return columns.begin()->second.size(); }
+    auto size()  const { return ncols() * nrows(); }
 
-    void print() ;
-    void to_csv(string_view filename) ;
+    // Output
+    void print() const;
+    void to_csv(string_view filename) const;
 
-    T operator[](string_view id) {
+    T & operator[](const string & id) {
         return columns[id];
     };
+
+    auto row(std::size_t n) const {
+        std::vector<item_type> row_{};
+        for (auto id : column_ids)
+            row_.push_back(columns.at(id).at(n));
+        return row_;
+    }
+
 };
 
 
@@ -83,6 +101,7 @@ Table<T>::add_columns(string_view id, const T & column){
     columns.insert(std::make_pair(id, column));
     return *this;
 };
+
 
 template<ColumnType T>
 template<typename ... Args>
@@ -98,9 +117,14 @@ Table<T>::add_columns(string_view first_id, const T & first_column, const Args &
 
 
 template<ColumnType T>
+Table<T>::Table() : column_ids(), columns() {}
+
+
+template<ColumnType T>
 Table<T>::Table(string_view id, const T & column) {
     add_columns(id, column);
 }
+
 
 template<ColumnType T>
 template<typename ... Args>
@@ -110,34 +134,45 @@ Table<T>::Table(string_view first_id, const T & first_column, const Args & ... o
 
 
 template<ColumnType T>
-void
-Table<T>::print() {
+std::ostream &
+operator<<(std::ostream & output, const Table<T> & table) {
     // Set precision
-    cout << std::setprecision(precision);
+    output << std::setprecision(table.get_precision());
 
     // Print the headers
-    for (auto id : column_ids)
-    cout << setw(col_width) << id;
-    cout << "\n";
+    for (auto id : table.head())
+        output << setw(table.get_width()) << id;
+    output << "\n";
 
     // Print hrule
-    for (auto i : iota(0u, col_width * ncols()))
-        cout << "-";
-    cout << "\n";
+    for (auto i : iota(0u, table.get_width() * table.ncols()))
+        output << "-";
+    output << "\n";
 
     // Print the elements
-    for (auto i : iota(0u, nrows())) {
-        for (auto id : column_ids)
-        cout << setw(col_width) << columns[id][i];
-        cout << "\n";
+    for (auto n : iota(0u, table.nrows())) {
+        for (auto item : table.row(n))
+            output << setw(table.get_width()) << item;
+        output << "\n";
     }
-    cout << std::endl;
+    output << std::endl;
+
+    return output;
 }
 
 
 template<ColumnType T>
 void
-Table<T>::to_csv(string_view filename) {
+Table<T>::print() const {
+    std::cout << *this;
+}
+
+
+template<ColumnType T>
+void
+Table<T>::to_csv(string_view filename) const {
+    std::cout << "Writing contents onto file '" << filename << "'\n";
+
     std::fstream file{string(filename), file.out};
 
     // Set precision
@@ -152,10 +187,13 @@ Table<T>::to_csv(string_view filename) {
     file << last_id << "\n";
 
     // Print columns
-    for (auto i : iota(0u, nrows())) {
-        for (auto id : inner_ids)
-            file << columns[id][i] << ",";
-        file << columns[last_id][i] << "\n";
+    for (auto n : iota(0u, this->nrows())) {
+        auto row = this->row(n);
+        auto inner_items = row | views::take(this->ncols() - 1);
+        auto last_item = row.back();
+        for (auto item : inner_items)
+            file << item << ",";
+        file << last_item << "\n";
     }
 }
 
