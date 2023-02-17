@@ -65,8 +65,7 @@ clocks::compute_disorder_IT(
     disorder *= op(sites, op_type, begin);
     disorder *= dag(utils::prime_inds(psi(begin), "Site", rightLinkIndex(psi, begin)));
 
-    for(int pos=begin+1; pos < end; pos++)
-    {
+    for(int pos=begin+1; pos < end; pos++) {
         disorder *= psi(pos);
         disorder *= op(sites, op_type, pos);
         disorder *= dag(utils::prime_inds(psi(pos), "Site", "Link"));
