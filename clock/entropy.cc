@@ -1,4 +1,5 @@
 #include "entropy.h"
+#include "utils/ranges.h"
 
 using Real = itensor::Real;
 Real entropy_vN(itensor::MPS & psi, int pos, const itensor::Args & args)
@@ -12,7 +13,7 @@ Real entropy_vN(itensor::MPS & psi, int pos, const itensor::Args & args)
 
     auto cutoff = args.getReal("Cutoff", 1E-12);
     Real SvN = 0;
-    for(auto n : itensor::range1(dim(common_ind)))
+    for(auto n : utils::range(1l, dim(common_ind)+1))
     {
         auto s = elt(S, n, n);
         auto p = s * s;
