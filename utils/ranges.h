@@ -39,6 +39,15 @@ public:
         else
             return current < other.current;
     }
+
+    T operator-(const range_iter & other) const {
+        return current - other.current;
+    }
+
+    range_iter & operator+=(T value) {
+        current += value;
+        return *this;
+    }
 };
 
 
