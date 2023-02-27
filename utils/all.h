@@ -22,34 +22,31 @@ namespace utils {
 // modulus counting from 1
 // mod1(N, N) = N,
 // mod1(N + 1, N) = 1,
-// different from the usual mod operattion
-constexpr int mod1(int i, int n) { return ((i - 1) % n) + 1; }
+// different from the usual mod operation
+constexpr int mod1(int i, int n) {
+    return ((i - 1) % n) + 1;
+}
 
 // Primes one index
 template<typename T>
-ITensor prime_inds(ITensor psi, T ind)
-{
+ITensor prime_inds(ITensor psi, T ind) {
     return prime(psi, ind);
 }
 
 // Shorthand for priming multiple indices at once
 template<typename T, typename... Args>
 ITensor
-prime_inds(ITensor psi, T ind, Args... args)
-{
+prime_inds(ITensor psi, T ind, Args... args) {
     return prime_inds(prime(psi, ind), args...);
 }
 
 // Convert unordered_map to vector
 template<typename T1, typename T2>
 std::vector<T2>
-umap_to_vector(std::unordered_map<T1, T2> in, std::vector<T1> keys)
-{
+umap_to_vector(std::unordered_map<T1, T2> in, std::vector<T1> keys) {
     std::vector<T2> out;
     for (auto k : keys)
-    {
         out.push_back(in[k]);
-    }
     return out;
 }
 
@@ -58,12 +55,10 @@ umap_to_vector(std::unordered_map<T1, T2> in, std::vector<T1> keys)
 // Shorthand for ranges and linspaces like in numpy
 #include "ranges.h"
 
-// dumping contents
-#include "dump.h"
-
 // Benchmarks
 #include "benchmark.h"
 
+// Table class
 #include "table.h"
 
 /************************************************************/
