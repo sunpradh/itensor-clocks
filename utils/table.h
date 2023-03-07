@@ -9,36 +9,23 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <ranges>
+
+#include "ranges.h"
 
 using std::string;
 using std::string_view;
 using std::cout;
-namespace views = std::ranges::views;
-using views::iota;
-
-
-template<typename T>
-concept ColumnType = requires(T a, int i) {
-    typename T::value_type;
-    typename T::iterator;
-    { std::begin(a) };
-    { std::end(a) };
-    { std::size(a) };
-    { a[i] };
-    { a.at(i) };
-};
 
 
 namespace utils {
 
-template<ColumnType T>
+template<typename T>
 class Table {
     std::vector<string> column_ids{};
     std::unordered_map<string, T> columns{};
 
-    unsigned int precision_ = 8;
-    unsigned int column_width_ = 12;
+    unsigned precision_ = 8;
+    unsigned column_width_ = 12;
 
 public:
     using column_type = T;
@@ -69,10 +56,10 @@ public:
     }
 
     // Access useful info
-    auto ncols()     const { return columns.size(); }
-    auto nrows()     const { return columns.begin()->second.size(); }
-    auto size()      const { return ncols() * nrows(); }
-    auto width()     const { return column_width_; }
+    unsigned ncols()     const { return columns.size(); }
+    unsigned nrows()     const { return columns.begin()->second.size(); }
+    unsigned size()      const { return ncols() * nrows(); }
+    unsigned width()     const { return column_width_; }
     auto precision() const { return precision_; }
     const std::vector<string> & ids() const { return column_ids; }
 
@@ -90,7 +77,7 @@ public:
 };
 
 
-template<ColumnType T>
+template<typename T>
 Table<T>
 Table<T>::add_columns(string_view id, const T & column){
     if (!columns.empty())
@@ -102,7 +89,7 @@ Table<T>::add_columns(string_view id, const T & column){
 };
 
 
-template<ColumnType T>
+template<typename T>
 template<typename ... Args>
 Table<T>
 Table<T>::add_columns(
@@ -118,31 +105,31 @@ Table<T>::add_columns(
 }
 
 
-template<ColumnType T>
+template<typename T>
 Table<T>::Table() : column_ids(), columns() {}
 
 
-template<ColumnType T>
+template<typename T>
 Table<T>::Table(string_view id, const T & column) {
     add_columns(id, column);
 }
 
 
-template<ColumnType T>
+template<typename T>
 template<typename ... Args>
 Table<T>::Table(string_view first_id, const T & first_column, const Args & ... other_cols) {
     add_columns(first_id, first_column, other_cols...);
 }
 
-template<ColumnType T>
+template<typename T>
 void
 Table<T>::hrule(std::ostream & output) const {
-    for (auto i : iota(0u, width() * ncols()))
+    for (auto i : range(0u, width() * ncols()))
         output << "-";
     output << "\n";
 }
 
-template<ColumnType T>
+template<typename T>
 void
 Table<T>::header(std::ostream & output) const {
     for (auto id : ids())
@@ -151,7 +138,7 @@ Table<T>::header(std::ostream & output) const {
 }
 
 
-template<ColumnType T>
+template<typename T>
 std::ostream &
 operator<<(std::ostream & output, const Table<T> & table) {
     // Set precision
@@ -163,7 +150,7 @@ operator<<(std::ostream & output, const Table<T> & table) {
     table.hrule(output);
 
     // Print the elements
-    for (auto n : iota(0u, table.nrows())) {
+    for (auto n : range(0u, table.nrows())) {
         for (auto item : table.row(n))
             output << std::setw(table.width()) << item;
         output << "\n";
@@ -174,14 +161,14 @@ operator<<(std::ostream & output, const Table<T> & table) {
 }
 
 
-template<ColumnType T>
+template<typename T>
 void
 Table<T>::print() const {
     std::cout << *this;
 }
 
 
-template<ColumnType T>
+template<typename T>
 void
 Table<T>::to_csv(string_view filename) const {
     std::cout << "   Writing contents onto file '" << filename << "'\n";
@@ -191,21 +178,17 @@ Table<T>::to_csv(string_view filename) const {
     // Set precision
     file << std::setprecision(this->precision());
 
-    auto inner_ids = column_ids | views::take(ncols()-1);
-    auto last_id = column_ids.back();
-
     // Print headers
-    for (auto id : inner_ids) file << id << ",";
-    file << last_id << "\n";
+    for (auto id = column_ids.begin(); id != column_ids.end()-1; id++)
+        file << *id << ",";
+    file << column_ids.back() << "\n";
 
     // Print columns
-    for (auto n : iota(0u, this->nrows())) {
+    for (auto n : range(0u, this->nrows())) {
         auto row = this->row(n);
-        auto inner_items = row | views::take(ncols() - 1);
-        auto last_item = row.back();
-        for (auto item : inner_items)
-            file << item << ",";
-        file << last_item << "\n";
+        for (auto item = row.begin(); item != row.end()-1; item++)
+            file << *item << ",";
+        file << row.back() << "\n";
     }
 }
 
