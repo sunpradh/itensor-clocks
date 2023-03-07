@@ -7,10 +7,6 @@
 
 #include "itensor/all.h"
 
-using itensor::ITensor;
-using itensor::prime;
-using string = std::string;
-using Interval = std::pair<int, int>;
 
 /************************************************************/
 // List of useful functions, that do not directly depends
@@ -19,9 +15,13 @@ using Interval = std::pair<int, int>;
 
 namespace utils {
 
+namespace it = itensor;
+using string = std::string;
+using Interval = std::pair<int, int>;
+
 // modulus counting from 1
-// mod1(N, N) = N,
-// mod1(N + 1, N) = 1,
+//      mod1(N, N) = N,
+//      mod1(N + 1, N) = 1,
 // different from the usual mod operation
 constexpr int mod1(int i, int n) {
     return ((i - 1) % n) + 1;
@@ -29,15 +29,15 @@ constexpr int mod1(int i, int n) {
 
 // Primes one index
 template<typename T>
-ITensor prime_inds(ITensor psi, T ind) {
-    return prime(psi, ind);
+it::ITensor prime_inds(it::ITensor psi, T ind) {
+    return it::prime(psi, ind);
 }
 
 // Shorthand for priming multiple indices at once
 template<typename T, typename... Args>
-ITensor
-prime_inds(ITensor psi, T ind, Args... args) {
-    return prime_inds(prime(psi, ind), args...);
+it::ITensor
+prime_inds(it::ITensor psi, T ind, Args... args) {
+    return prime_inds(it::prime(psi, ind), args...);
 }
 
 // Convert unordered_map to vector

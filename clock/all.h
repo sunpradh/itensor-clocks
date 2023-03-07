@@ -2,11 +2,6 @@
 #define __CLOCK_ALL_H
 
 /************************************************************/
-// Include the ITensor library
-#include "itensor/all.h"
-
-using Complex = itensor::Complex;
-using Real    = itensor::Real;
 // Include the custom class ClockSite
 #include "clock.h"
 
@@ -28,8 +23,8 @@ using Real    = itensor::Real;
 // Entanglement entropy
 #include "entropy.h"
 
-// Some utility functions
-#include "../utils/all.h"
+// Simulation stuff
+#include "simulations.h"
 /************************************************************/
 
 #endif

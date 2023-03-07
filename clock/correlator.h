@@ -2,58 +2,52 @@
 #define __CLOCK_CORRELATOR_H
 
 #include "clock.h"
-#include "../utils/all.h"
 
-using Real = itensor::Real;
-using itensor::MPS;
-using itensor::ITensor;
 /************************************************************/
 namespace clocks {
 
 template<unsigned int N>
-ITensor
+it::ITensor
 compute_correlator_IT(
     const Clock<N> & sites,
-          MPS      & psi,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
 );
 
 template<unsigned int N>
-Real
+double
 compute_correlator(
     const Clock<N> & sites,
-          MPS      & psi,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
 );
 
 template<unsigned int N>
-Complex
+complex
 compute_correlatorC(
     const Clock<N> & sites,
-          MPS      & psi,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
 );
 
-}
 /************************************************************/
 
 // Compute the correlation function
 // return a scalar ITensor
 template<unsigned int N>
-ITensor clocks::compute_correlator_IT(
-    const clocks::Clock<N> & sites,
-          MPS      & psi,
+it::ITensor compute_correlator_IT(
+    const Clock<N> & sites,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
-)
-{
+) {
     if (!is_valid_op(op1))
         throw std::runtime_error("Unrecognized first operator for correlator");
     if (!is_valid_op(op2))
@@ -68,13 +62,13 @@ ITensor clocks::compute_correlator_IT(
     auto op_second = op(sites, op2, end);
 
     psi.position(begin);
-    ITensor correl = psi(begin);
+    it::ITensor correl = psi(begin);
     // Contracts the operator at the start of the interval
     correl *= op_first;
 
     // find the right link index of the bra <psi|
     // Primes both the site index and the link index and then contracts
-    correl *= dag(utils::prime_inds(psi(begin), "Site", rightLinkIndex(psi, begin)));
+    correl *= dag(utils::prime_inds(psi(begin), "Site", it::rightLinkIndex(psi, begin)));
 
     // Contracts all the site inside the interval
     for (int i=begin+1; i<end; i++)
@@ -85,35 +79,34 @@ ITensor clocks::compute_correlator_IT(
     correl *= op_second;
 
     // find the left index of the bra <psi| and then contracts with evaluated correlator
-    correl *= dag(utils::prime_inds(psi(end), "Site", leftLinkIndex(psi, end)));
+    correl *= dag(utils::prime_inds(psi(end), "Site", it::leftLinkIndex(psi, end)));
     // Contracts all the site at the right of the interval
 
     return correl;
 }
 
 template<unsigned int N>
-Real
-clocks::compute_correlator(
+double compute_correlator(
     const Clock<N> & sites,
-          MPS      & psi,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
-)
-{
+) {
     return elt(compute_correlator_IT(sites, psi, op1, op2, interv));
 }
 
 template<unsigned int N>
-Complex
-clocks::compute_correlatorC(
+complex compute_correlatorC(
     const Clock<N> & sites,
-          MPS      & psi,
+          it::MPS  & psi,
     const string   & op1,
     const string   & op2,
     const Interval & interv
-)
-{
+) {
     return eltC(compute_correlator_IT(sites, psi, op1, op2, interv));
+}
+
+
 }
 #endif

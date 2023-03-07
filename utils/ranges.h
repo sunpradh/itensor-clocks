@@ -40,6 +40,10 @@ public:
             return current < other.current;
     }
 
+    bool operator!=(const range_iter & other) const {
+        return !(*this == other);
+    }
+
     T operator-(const range_iter & other) const {
         return current - other.current;
     }

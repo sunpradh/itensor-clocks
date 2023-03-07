@@ -3,70 +3,68 @@
 
 #include <numeric>
 #include <vector>
-#include <type_traits>
-#include <utility>
 
+#include "itensor/all.h"
 #include "clock.h"
-#include <functional>
 
 template<typename T> using vector = std::vector<T>;
-using std::string;
-using Real = itensor::Real;
-using itensor::expect;
-using itensor::MPS;
 
 /************************************************************/
 namespace clocks {
 
+/// Computer order parameter
+/// yields real result
 template<unsigned N, typename... Args>
-Real
+double
 compute_order(
     const Clock<N> & sites,
-    MPS & psi,
+    it::MPS & psi,
     Args... op_types
 );
 
+/// Computer order parameter
+/// yields complex result
 template<unsigned N, typename... Args>
-Complex
+complex
 compute_orderC(
     const Clock<N> & sites,
-    MPS & psi,
+    it::MPS & psi,
     Args... op_types
 );
 
-}
 /************************************************************/
 
 template<unsigned N, typename... Args>
-Real
-clocks::compute_order(
-    const clocks::Clock<N> & sites,
-    MPS & psi,
+double compute_order(
+    const Clock<N> & sites,
+    it::MPS & psi,
     Args... op_types
-)
-{
+) {
     auto ops = vector<string>{op_types...};
-    auto expts = expect(psi, sites, ops);
-    vector<Real> results;
-    for (const auto & expt : expts)
-        results.push_back(std::accumulate(expt.begin(), expt.end(), Real(0)));
-    return std::accumulate(results.begin(), results.end(), Real(0)) / double(itensor::length(sites));
+    vector<double> results;
+    results.reserve(ops.size());
+    for (const auto & expt : it::expect(psi, sites, ops))
+        results.push_back(
+            std::accumulate(expt.begin(), expt.end(), .0)
+        );
+    return std::accumulate(results.begin(), results.end(), .0) / double(it::length(sites));
 }
 
 template<unsigned N, typename... Args>
-Complex
-clocks::compute_orderC(
-    const clocks::Clock<N> & sites,
-    MPS & psi,
+complex compute_orderC(
+    const Clock<N> & sites,
+    it::MPS & psi,
     Args... op_types
-)
-{
+) {
     auto ops = vector<string>{op_types...};
-    auto expts = expectC(psi, sites, ops);
-    vector<Complex> results;
-    for (const auto & expt : expts)
-        results.push_back(std::accumulate(expt.begin(), expt.end(), Complex(0)));
-    return std::accumulate(results.begin(), results.end(), Complex(0)) / double(itensor::length(sites));
+    vector<complex> results;
+    results.reserve(ops.size());
+    for (const auto & expt : it::expectC(psi, sites, ops))
+        results.push_back(
+            std::accumulate(expt.begin(), expt.end(), complex(.0))
+        );
+    return std::accumulate(results.begin(), results.end(), complex(.0)) / double(it::length(sites));
 }
 
+}
 #endif
