@@ -1,5 +1,5 @@
-#ifndef __UTILS_TABLE_H
-#define __UTILS_TABLE_H
+#ifndef __CLOCK_UTILS_TABLE_H
+#define __CLOCK_UTILS_TABLE_H
 
 #include <string>
 #include <vector>
