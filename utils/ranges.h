@@ -6,6 +6,7 @@
 #include <array>
 #include <stdexcept>
 
+
 /************************************************************/
 namespace utils {
 
@@ -86,16 +87,20 @@ public:
         bool operator==(const iterator & other) const {
             // damn you rounding errors
             if (this->step > 0)
-                return (this->current - other.current) > (1e-13 * this->step);
+                return (this->current - other.current) > (1e-12 * this->step);
             else
-                return (other.current - this->current) > (1e-13 * this->step);
+                return (other.current - this->current) > (1e-12 * this->step);
+        }
+
+        bool operator!=(const iterator & other) const {
+            return !(*this == other);
         }
     };
 
     linspace(T begin, T end, std::size_t npoints) : npoints_(npoints) {
         T step = (end - begin) / T(npoints-1);
-        begin_ = iterator(begin, T(step));
-        end_ = iterator(end, T(step));
+        begin_ = iterator(begin, step);
+        end_ = iterator(end, step);
     }
 
     iterator begin() { return begin_; }
