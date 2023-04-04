@@ -70,8 +70,8 @@ operator<<(std::ostream & output, const Timer & timer) {
     if (time_h > 0)
         output << time_h << units<time::h>();
     if (time_m > 0)
-        output << time_m << units<time::m>();
-    output << time_s << units<time::s>();
+        output << time_m % 60 << units<time::m>();
+    output << time_s % 60 << units<time::s>();
     return output;
 
 }
