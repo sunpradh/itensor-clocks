@@ -37,33 +37,38 @@ string str(T a) {
 
 /// Filename for the output csv
 template<unsigned int N>
-string output_csv_filename(unsigned len, unsigned sector) {
-    return "Z" + str(N) + "_L_" + str(len) + "_sector_" + str(sector) + ".csv";
+string csv_filename(unsigned len, unsigned sector, const string & suffix = "") {
+    auto partial = "Z" + str(N) + "_L_" + str(len) + "_sector_" + str(sector);
+    if (suffix != "")
+        partial += "_" + suffix;
+    return partial + ".csv";
 }
 
 template<unsigned N, unsigned n_points, unsigned n_excited = 1>
-struct Compute {
+struct ComputeObservables {
 
+    // Types
     using Array = std::array<double, n_points>;
     using Vector = std::vector<double>;
     using Table = ut::Table<Array>;
 
-    unsigned size;
+    // Members
     Clock<N> sites;
+    unsigned size;
     Array couplings;
     it::Sweeps sweeps;
     it::Args args;
 
     /// Constructor
     /// needs chain length, sweeps and couplings
-    Compute(
+    ComputeObservables(
         unsigned chain_length_,
         const it::Sweeps & sweeps_,
         const Array & couplings_,
         const it::Args & args_ = {}
     ) :
-        size(chain_length_),
         sites(chain_length_, {"ConserveQNs", false}),
+        size(chain_length_),
         couplings(couplings_),
         sweeps(sweeps_),
         args(args_) {};
@@ -72,6 +77,7 @@ struct Compute {
     struct Observables {
         double gs_energy;
         optional<double> disorder;
+        optional<double> order;
         optional<double> correlator_half;
         optional<Vector> correlator;
         optional<Vector> excited_energies;
@@ -93,15 +99,21 @@ struct Compute {
     /// Disorder operator, equivalent to the Wilson loop
     optional<double> disorder(it::MPS & psi) {
         if (args.getBool("NoDisorder", false))
-            return {};
-        return 0.5 * abs(cl::compute_disorderC(sites, psi, "X", {1, size/2}) +
-                         cl::compute_disorderC(sites, psi, "Xdag", {1, size/2}));
+            return std::nullopt;
+        return 0.5 * (cl::compute_disorderC(sites, psi, "X", {1, size/2}) +
+                         cl::compute_disorderC(sites, psi, "Xdag", {1, size/2})).real();
     };
+
+    optional<double> order(it::MPS & psi) {
+        if (args.getBool("NoOrder", false))
+            return std::nullopt;
+        return 0.5 * cl::compute_orderC(sites, psi, "Z", "Zdag").real();
+    }
 
     /// Correlator from the start to the middle of the chain, equivalent to the 't Hooft string
     optional<double> half_chain_correlator(it::MPS & psi) {
         if (args.getBool("NoHalfChainCorrelator", false))
-            return {};
+            return std::nullopt;
         return abs(cl::compute_correlatorC(sites, psi, "Z", "Zdag", {1, size/2}));
     };
 
@@ -122,15 +134,19 @@ struct Compute {
     };
 
     /// Compute energy of the excited levels
-    optional<Vector> excited_levels(it::MPO & hamiltonian, it::MPS & psi0, it::MPS & init_psi) {
-        if (args.getBool("NoExcitedLevels", false))
+    optional<Vector>
+    excited_levels(
+        it::MPO & hamiltonian,
+        it::MPS & psi0
+    ) {
+        if (args.getBool("NoExcited", false))
             return {};
         Vector excited_energies(n_excited);
         auto wavefunctions = std::vector<it::MPS>{};
         wavefunctions.reserve(n_excited);
         wavefunctions.push_back(psi0);
+        auto init_psi = it::randomMPS(sites);
 
-        // for (auto& level : excited_energies) {
         for (unsigned n=0; n < n_excited; n++) {
             auto [E, psi] = dmrg(
                     hamiltonian,
@@ -147,19 +163,21 @@ struct Compute {
     };
 
     /// Compute the observables for a given coupling and sector
-    std::pair<Observables, it::MPS> observables_at(
-        it::MPS & init_psi,
+    std::pair<optional<Observables>, it::MPS>
+    observables_at(
         double coupling,
         unsigned sector
     ) {
         auto H = dual_hamiltonian(coupling, sector);
+        auto init_psi = it::randomMPS(sites);
         auto [gs_energy, psi] = dmrg(H, init_psi, sweeps, {"Silent", true});
         auto results = Observables{
             gs_energy,
             disorder(psi),
+            order(psi),
             half_chain_correlator(psi),
             correlator(psi, size/4, 3*size/4),
-            excited_levels(H, psi, init_psi)
+            excited_levels(H, psi)
         };
 
         return std::make_pair(results, psi);
@@ -167,22 +185,24 @@ struct Compute {
 
     /// Computing observables for each couplings for a given sector
     Table all(unsigned sector) {
-        unsigned corr_begin = size/4, corr_end = 3*size/4;
+        unsigned n_steps    = couplings.size(),
+                 step       = 0,
+                 corr_begin = size/4,
+                 corr_end   = 3*size/4;
         auto results = new_table(corr_begin, corr_end);
-        auto init_psi = it::randomMPS(sites);
+        auto timer = ut::Timer().start();
 
         std::cout << " * Computing sector n. " << sector << "\n";
-        unsigned n_steps = couplings.size(), step = 0;
         // DMRG calculation for each coupling
         #pragma omp parallel for
         for (auto i : ut::range(n_steps)) {
             #pragma omp critical
             { print_progress(++step, n_steps); }
-            auto [obs, psi] = observables_at(init_psi, couplings.at(i), sector);
+            auto [obs, psi] = observables_at(couplings.at(i), sector);
             fill_table_row(results, obs, i);
-            init_psi = psi;
         }
         std::cout << " Done!\n";
+        std::cout << "   Elapsed time: " << timer.stop() << "\n";
 
         return results;
     };
@@ -196,10 +216,12 @@ private:
         // Optional columns
         if (!args.getBool("NoDisorder", false))
             table.add_columns("disorder", Array{});
+        if (!args.getBool("NoOrder", false))
+            table.add_columns("order", Array{});
         if (!args.getBool("NoHalfChainCorrelator", false))
             table.add_columns("corr_half", Array{});
         // Optional excited energies columns
-        if (!args.getBool("NoExcitedLevels", false))
+        if (!args.getBool("NoExcited", false))
             for (auto n : ut::range(n_excited))
                 table.add_columns("E" + str(n+1), Array{});
         // Optional correlator columns
@@ -222,16 +244,22 @@ private:
     }
 
     /// Fill all the entries of a row with the given observables
-    void fill_table_row(Table & table, const Observables & obs, unsigned row) {
-        table["gs_energy"][row] = obs.gs_energy;
-        if (obs.disorder)
-            table["disorder"][row] = *obs.disorder;
-        if (obs.correlator_half)
-            table["corr_half"][row] = *obs.correlator_half;
-        if (obs.excited_energies)
-            fill_excited_row(table, *obs.excited_energies, row);
-        if (obs.correlator)
-            fill_correlator_row(table, *obs.correlator, row);
+    void fill_table_row(Table & table, const optional<Observables> & obs, unsigned row) {
+        if (!obs)
+            return;
+
+        auto& obs_val = obs.value();
+        table["gs_energy"][row] = obs_val.gs_energy;
+        if (obs_val.disorder)
+            table["disorder"][row] = obs_val.disorder.value();
+        if (obs_val.order)
+            table["order"][row] = obs_val.disorder.value();
+        if (obs_val.correlator_half)
+            table["corr_half"][row] = obs_val.correlator_half.value();
+        if (obs_val.excited_energies)
+            fill_excited_row(table, obs_val.excited_energies.value(), row);
+        if (obs_val.correlator)
+            fill_correlator_row(table, obs_val.correlator.value(), row);
     }
 
     /// Simply print the progress
