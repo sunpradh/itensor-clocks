@@ -62,13 +62,32 @@ public:
     using value_type = T;
     using iterator = range_iter<T>;
 
-    range(T begin, T end, T step = T(1)) : begin_(begin, step), end_(end, step) {}
+    range(T begin, T end, T step = T(1)) :
+        start_(begin), stop_(end), step_(step), begin_(begin, step), end_(end, step) {}
     range(T end) : range(0, end, 1) {}
 
     iterator begin() { return begin_; }
-    iterator end() { return end_; }
+    iterator end()   { return end_; }
+
+    std::vector<T> to_vector() {
+        std::vector<T> vec{};
+        vec.reserve(std::abs(stop_ - start_) / step_);
+        for (auto x : *this) vec.push_back(x);
+        return vec;
+    }
+
+    template<unsigned N>
+    std::array<T, N> to_array() {
+        if (N != (std::abs(stop_ - start_)/step_))
+            throw std::invalid_argument("Array of the wrong size");
+        std::array<T, N> arr{T(0)};
+        size_t n = 0;
+        for (auto x : *this) { arr[n] = x; n++; }
+        return arr;
+    }
 
 private:
+    value_type start_, stop_, step_;
     iterator begin_, end_;
 };
 
@@ -109,6 +128,7 @@ public:
 
     std::vector<T> to_vector() {
         std::vector<T> vec;
+        vec.reserve(npoints_);
         for (auto x : *this) vec.push_back(x);
         return vec;
     }
