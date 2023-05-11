@@ -47,4 +47,28 @@ cutoff_based_noise
     800     1       1e-8    4       1e-10
     }
 
+cutoff_based_nonoise2
+    {
+    maxdim  mindim  cutoff  niter   noise
+    10      1       1e-6    4       0
+    50      1       1e-7    4       0
+    100     1       1e-8    4       0
+    200     1       1e-9    4       0
+    400     1       1e-9    4       0
+    800     1       1e-9    4       0
+    800     1       1e-9    4       0
+    }
+
+cutoff_based_noise2
+    {
+    maxdim  mindim  cutoff  niter   noise
+    10      1       1e-6    4       1e-6
+    50      1       1e-7    4       1e-6
+    100     1       1e-8    4       1e-7
+    200     1       1e-9    4       1e-8
+    400     1       1e-9    4       1e-9
+    800     1       1e-9    4       1e-10
+    800     1       1e-9    4       1e-10
+    }
+
 }
